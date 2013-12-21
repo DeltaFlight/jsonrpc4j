@@ -140,29 +140,33 @@ public class JsonRpcHttpClient
 		Map<String, String> extraHeaders)
 		throws Throwable {
 
-		// create URLConnection
-		HttpURLConnection con = prepareConnection(extraHeaders);
-		con.connect();
-
-		// invoke it
-		OutputStream ops = con.getOutputStream();
 		try {
-			super.invoke(methodName, argument, ops);
-		} finally {
-			ops.close();
-		}
+			// create URLConnection
+			HttpURLConnection con = prepareConnection(extraHeaders);
+			con.connect();
 
-		// read and return value
-		try {
-			InputStream ips = con.getInputStream();
+			// invoke it
+			OutputStream ops = con.getOutputStream();
 			try {
-				// in case of http error try to read response body and return it in exception
-				return super.readResponse(returnType, ips);
+				super.invoke(methodName, argument, ops);
 			} finally {
-				ips.close();
+				ops.close();
+			}
+
+			// read and return value
+			try {
+				InputStream ips = con.getInputStream();
+				try {
+					// in case of http error try to read response body and return it in exception
+					return super.readResponse(returnType, ips);
+				} finally {
+					ips.close();
+				}
+			} catch (IOException e) {
+				throw new HttpException(readString(con.getErrorStream()), e);
 			}
 		} catch (IOException e) {
-			throw new HttpException(readString(con.getErrorStream()), e);
+			throw new RuntimeIoException(e);
 		}
 	}
 
